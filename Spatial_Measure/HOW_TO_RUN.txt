@@ -1,0 +1,133 @@
+SPATIAL MEASURE - HOW TO RUN IT
+===============================
+
+Measures the real size of an object (in mm) with one ordinary webcam. Put the printed
+ArUco marker next to the object, click the object in the live video, and the app outlines
+it and shows its length, width and area, plus the camera distance and surface tilt.
+
+Repository:  https://github.com/Bings8y/spatial-measure
+Video demo:  https://youtu.be/2LbJO3nAttc
+Full report: docs/Spatial_Measure_Project_Report.pdf
+
+
+1. WHAT YOU NEED
+----------------
+- A laptop/PC with a webcam (Windows 10/11, macOS or Linux).
+- Python 3.10 or newer.
+    Windows: https://www.python.org/downloads/  -> during setup TICK "Add python.exe to PATH".
+    macOS:   python.org installer, or "brew install python".
+- About 2 GB of free disk space and internet for the first run (OpenCV, PyTorch and the
+  AI model are downloaded once).
+- The printed marker: targets/aruco_id0_50mm.pdf
+    Print it at 100 % / "Actual size" (NOT "Fit to page").
+    Measure the black square with a ruler - it should be 50 mm. If it is not (e.g. 49.5 mm),
+    type YOUR measured value into "Marker size" in the app. The app remembers it.
+
+
+2. START THE APP
+----------------
+WINDOWS (easiest)
+  1. Unzip the folder somewhere (e.g. Desktop). Do not run it from inside the zip.
+  2. Double-click  run_windows.bat
+     - The first run creates a ".venv" folder and installs everything. This takes a few
+       minutes. Later runs start in a few seconds.
+     - If Windows SmartScreen warns you: "More info" -> "Run anyway".
+  3. If the camera stays black: Windows Settings -> Privacy & security -> Camera ->
+     turn on "Let desktop apps access your camera". Close other apps using the camera
+     (Teams, Zoom, browser tabs).
+
+  Manual way (Command Prompt opened in the project folder):
+     py -3 -m venv .venv
+     .venv\Scripts\activate
+     pip install -r requirements.txt
+     python app.py
+
+MACOS / LINUX (Terminal opened in the project folder)
+     python3 -m venv .venv
+     source .venv/bin/activate
+     pip install -r requirements.txt
+     python app.py
+  macOS asks for camera permission for Terminal the first time - click Allow
+  (or System Settings -> Privacy & Security -> Camera -> enable Terminal, then run again).
+
+  Optional native Mac app: ./macapp/build.sh && open "build/Spatial Measure.app"
+  (needs the Xcode Command Line Tools; uses the same .venv).
+
+No camera at hand? Try it on a picture:   python app.py --source some_photo.jpg
+
+
+3. MEASURE SOMETHING
+--------------------
+  1. Lay the printed marker FLAT on the table next to the object (both on the same surface).
+  2. Point the camera at them. The marker gets a blue outline labelled "REF 0" and the
+     dot in the top bar turns green.
+  3. CLICK the object in the video. It is outlined in green and the sidebar shows
+     Length, Width and Area.
+  4. Press Esc (or "Clear") to measure something else.
+
+  Modes (sidebar -> "Mode"):
+    Table            Object and marker lying flat on the table (most accurate).
+    Hand + marker    Hold the object and the marker side by side, same distance from the
+                     camera, both facing it. The object is followed as you move it.
+    Hand, no marker  No marker: enter the camera-to-object distance (measured with a ruler)
+                     and hold the object there. This is only an estimate - 25 % wrong
+                     distance = 25 % wrong size.
+
+  Objects bigger than the frame (Table mode, "Scan large objects" on): click the object,
+  then slowly move the camera along it. "≥" (orange) means not fully seen yet, "≈" means
+  done. Pass over the marker again if it drifts.
+
+  Keys:  Esc = clear selection   Ctrl+L = log measurement (Cmd+L on Mac)   Ctrl+P = pause
+
+  Settings in the sidebar (marker size, camera, calibration file, mode, toggles) are saved
+  automatically to settings.json and come back the next time you start the app.
+  Wrong camera (e.g. a virtual/phone camera)? Pick another one under Settings -> Camera.
+
+
+4. TIPS FOR GOOD RESULTS
+------------------------
+  - Plain, evenly lit background; avoid glare and hard shadows.
+  - Keep the marker fully in view and flat (no curled paper).
+  - Objects must be flat-ish and on the marker's plane: the top of a tall box is closer to
+    the camera and reads too large.
+  - The first start with "Smart outline (AI)" on downloads a ~40 MB model once.
+    If AI is slow on your PC, untick it - the app falls back to the classic outline.
+
+
+5. OPTIONAL: CAMERA CALIBRATION (better accuracy + distance readings)
+---------------------------------------------------------------------
+  Without calibration, sizes still work; the "Distance" readings need it.
+  1. Print targets/checkerboard_9x6_25mm.pdf at 100 % and tape it to something flat.
+  2. Activate the environment (see section 2), then:
+        python calibrate.py --camera 0
+     Show the board tilted at many angles/distances, press SPACE ~20 times, then C.
+  3. This writes calibration.npz in the project folder; the app picks it up automatically
+     (or choose it under Settings -> Calibration -> Choose...).
+
+
+6. OTHER TOOLS (command line, environment activated)
+----------------------------------------------------
+  python -m pytest                          run the automated tests (no camera needed)
+  python measure.py --source 0              simple OpenCV-window version
+  python measure.py --source photo.jpg --output result.jpg
+  python generate_targets.py                re-create the printable marker/checkerboard
+  python evaluate.py measurements.csv       accuracy tables from logged measurements
+
+  Benchmark logging: in the sidebar fill "Object label" and "Caliper size" (e.g.
+  85.60x53.98), then press "Log measurement" a few times. Rows go to measurements.csv and
+  a snapshot image to the snapshots/ folder.
+
+
+7. PROBLEMS?
+------------
+  "python is not recognized"     Re-install Python and tick "Add python.exe to PATH".
+  pip install fails              Run:  .venv\Scripts\python -m pip install --upgrade pip
+                                 then run_windows.bat again. Check your internet.
+  Black video / "Could not open camera 0"
+                                 Camera permission (section 2), close other camera apps,
+                                 or pick another camera index in Settings.
+  "Looking for the ArUco marker..." never goes away
+                                 Marker not printed at 100 %, too small in the picture,
+                                 blurred, or in glare. Move closer / improve light.
+  Sizes are a little off         Measure the printed marker with a ruler and type that
+                                 value into "Marker size".
